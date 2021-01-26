@@ -55,7 +55,7 @@ func GetOdds(sport string) (*OddsResp, error) {
 		sport = Sport
 	}
 
-	url := fmt.Sprintf("%s/v3/sports/?apiKey=%s&sport=%s&region=%s&mkt=%s", Endpoint, ApiKey, sport, Region, Market)
+	url := fmt.Sprintf("%s/v3/odds?apiKey=%s&sport=%s&region=%s&mkt=%s", Endpoint, ApiKey, sport, Region, Market)
 	res := &OddsResp{}
 
 	err := makeRequest("getOdds", http.MethodGet, url, nil, res)
@@ -73,7 +73,7 @@ type SportsResp struct {
 
 // GetSports send request to odds to get the data of sports
 func GetSports() (*SportsResp, error) {
-	url := Endpoint + "/v3/sports/?apiKey=" + ApiKey
+	url := Endpoint + "/v3/sports?apiKey=" + ApiKey
 	res := &SportsResp{}
 
 	err := makeRequest("getSport", http.MethodGet, url, nil, res)

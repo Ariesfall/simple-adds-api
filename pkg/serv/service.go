@@ -20,10 +20,7 @@ func Service(db *sqlx.DB) http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	// api path
-	// r.Get("/user", handler.UserGet(db))
-	// r.Post("/user", handler.UserCreate(db))
-	// r.Put("/user", handler.UserUpdate(db))
-	// r.Post("/user", handler.UserDelete(db))
+	r.Get("/odds", Oddshandler(db))
 
 	return r
 }

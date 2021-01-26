@@ -45,7 +45,6 @@ func init() {
 
 	rootCmd.MarkPersistentFlagRequired("license")
 
-	initService()
 }
 
 func initService() {
@@ -54,6 +53,7 @@ func initService() {
 }
 
 func OddsSrv(cmd *cobra.Command, args []string) error {
+	initService()
 
 	// connect pgsql
 	dsn := conn.MakeDsn(pgAddr, pgPort, pgUser, pgPass, "sbet")

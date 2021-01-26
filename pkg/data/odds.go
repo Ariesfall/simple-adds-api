@@ -1,6 +1,8 @@
 package data
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -28,26 +30,52 @@ type Odds struct {
 	OddDraw    float32 `json:"odds_draw" db:"odds_draw"`
 }
 
-func GetMatch(db *sqlx.DB, in *Match) (*Match, error) {
-	q := "SELECT sport_key, sport_nice, commence_time, home_team, team_a, team_b, sites_count FROM matchs " +
-		"WHERE SportKey = ? AND  commence_time=? AND home_team=?"
+type MatchOdds struct {
+	*Match
+	Sites []*Odds `json:"sites"`
+}
 
-	res := &Match{}
-	err := db.Get(res, q, in.SportKey, in.CommenceTime, in.HomeTeam)
+func ListMatch(db *sqlx.DB, in *Match) ([]*MatchOdds, error) {
+	now := int(time.Now().Unix())
+	q := fmt.Sprintf("SELECT sport_key, sport_nice, commence_time, home_team, team_a, team_b, sites_count FROM matchs "+
+		"WHERE commence_time>%d", now)
+
+	if in.SportKey != "" {
+		q += fmt.Sprintf(" AND sport_key='%s'", in.SportKey)
+	}
+
+	matchs := []*Match{}
+	err := db.Select(&matchs, q+" ORDER BY commence_time")
 	if err != nil {
 		return nil, err
 	}
 
+	res := []*MatchOdds{}
+	for _, m := range matchs {
+		matchKey := m.HomeTeam + strconv.Itoa(m.CommenceTime)
+		q = fmt.Sprintf("SELECT match_key, site_key, site_nice, last_update, odds_team_a, odds_team_b, odds_draw FROM odds WHERE match_key='%s'", matchKey)
+
+		sites := []*Odds{}
+
+		err = db.Select(&sites, q)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, &MatchOdds{
+			Match: m,
+			Sites: sites,
+		})
+	}
 	return res, nil
 }
 
-func ListMatch(db *sqlx.DB, in *Match) ([]*Match, error) {
-	now := time.Now().Unix()
-	q := "SELECT sport_key, sport_nice, commence_time, home_team, team_a, team_b, sites_count FROM matchs " +
-		"WHERE commence_time>?"
+func GetMatch(db *sqlx.DB, in *Match) (*Match, error) {
+	q := fmt.Sprintf("SELECT sport_key, sport_nice, commence_time, home_team, team_a, team_b, sites_count FROM matchs "+
+		"WHERE SportKey='%s' AND commence_time=%d AND home_team='%s'", in.SportKey, in.CommenceTime, in.HomeTeam)
 
-	res := []*Match{}
-	err := db.Get(&res, q, in.SportKey, now)
+	res := &Match{}
+	err := db.Get(res, q)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +85,7 @@ func ListMatch(db *sqlx.DB, in *Match) ([]*Match, error) {
 
 func CreateMatch(db *sqlx.DB, in *Match) error {
 	q := "INSERT INTO matchs (sport_key, sport_nice, commence_time, home_team, team_a, team_b, sites_count)" +
-		" VALUE (:sport_key, :sport_nice, :commence_time, :home_team, :team_a, :team_b, :sites_count)"
+		" VALUES (:sport_key, :sport_nice, :commence_time, :home_team, :team_a, :team_b, :sites_count)"
 
 	_, err := db.NamedExec(q, in)
 	if err != nil {
@@ -81,10 +109,11 @@ func UpdateMatch(db *sqlx.DB, in *Match) error {
 }
 
 func GetOdds(db *sqlx.DB, in *Odds) (*Odds, error) {
-	q := "SELECT match_key, site_key, site_nice, odds_team_a, odds_team_b, odds_draw FROM odds WHERE match_key=? AND site_key=?"
+	q := fmt.Sprintf("SELECT match_key, site_key, site_nice, last_update, odds_team_a, odds_team_b, odds_draw FROM odds"+
+		"WHERE match_key='%s' AND site_key='%s'", in.MatchKey, in.SiteKey)
 
 	res := &Odds{}
-	err := db.Get(res, q, in.MatchKey, in.SiteKey)
+	err := db.Get(res, q)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +122,8 @@ func GetOdds(db *sqlx.DB, in *Odds) (*Odds, error) {
 }
 
 func CreateOdds(db *sqlx.DB, in *Odds) error {
-	q := "INSERT INTO odds (match_key, site_key, site_nice, odds_team_a, odds_team_b, odds_draw)" +
-		" VALUE (:match_key, :site_key, :site_nice, :odds_team_a, :odds_team_b, :odds_draw)"
+	q := "INSERT INTO odds (match_key, site_key, site_nice, last_update, odds_team_a, odds_team_b, odds_draw)" +
+		" VALUES (:match_key, :site_key, :site_nice, :last_update, :odds_team_a, :odds_team_b, :odds_draw)"
 
 	_, err := db.NamedExec(q, in)
 	if err != nil {
@@ -105,7 +134,7 @@ func CreateOdds(db *sqlx.DB, in *Odds) error {
 }
 
 func UpdateOdds(db *sqlx.DB, in *Odds) error {
-	q := "UPDATE odds SET odds_team_a=:odds_team_a, odds_team_b=Lodds_team_b, odds_draw=:odds_draw" +
+	q := "UPDATE odds SET last_update=:last_update, odds_team_a=:odds_team_a, odds_team_b=Lodds_team_b, odds_draw=:odds_draw" +
 		"WHERE match_key=:match_key AND site_key=:site_key"
 
 	_, err := db.NamedExec(q, in)

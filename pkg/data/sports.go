@@ -1,6 +1,8 @@
 package data
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -15,10 +17,10 @@ type Sports struct {
 }
 
 func GetSports(db *sqlx.DB, key string) (*Sports, error) {
-	q := "SELECT sport_key, active, sport_group, detail, title FROM sports WHERE sport_key = ?"
+	q := fmt.Sprintf("SELECT sport_key, active, sport_group, detail, title FROM sports WHERE sport_key='%s'", key)
 
 	res := &Sports{}
-	err := db.Get(res, q, key)
+	err := db.Get(res, q)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +41,7 @@ func ListSports(db *sqlx.DB) ([]*Sports, error) {
 }
 
 func CreateSports(db *sqlx.DB, in *Sports) error {
-	q := "INSERT INTO sports (sport_key, active, sport_group, detail, title) VALUE (:sport_key, :active, :sport_group, :detail, :title)"
+	q := "INSERT INTO sports (sport_key, active, sport_group, detail, title) VALUES (:sport_key, :active, :sport_group, :detail, :title)"
 
 	_, err := db.NamedExec(q, in)
 	if err != nil {

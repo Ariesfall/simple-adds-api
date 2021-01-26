@@ -31,13 +31,13 @@ func InitSync() (err error) {
 func SyncSport() error {
 	res, err := odds.GetSports()
 	if err != nil {
-		log.Println("Error: request error" + err.Error())
+		log.Println("Error: request error " + err.Error())
 		return err
 	}
 
 	err = UpsertSport(res)
 	if err != nil {
-		log.Println("Error: upsert error" + err.Error())
+		log.Println("Error: upsert error " + err.Error())
 		return err
 	}
 
@@ -49,13 +49,13 @@ func SyncSport() error {
 func SyncOdds(sports string) error {
 	res, err := odds.GetOdds(sports)
 	if err != nil {
-		log.Println("Error: request error" + err.Error())
+		log.Println("Error: request error " + err.Error())
 		return err
 	}
 
 	err = UpsertMatch(res)
 	if err != nil {
-		log.Println("Error: upsert error" + err.Error())
+		log.Println("Error: upsert error " + err.Error())
 		return err
 	}
 
@@ -134,9 +134,14 @@ func UpsertMatch(in *odds.OddsResp) error {
 func UpsertOdds(matchkey string, sites []*odds.Site) error {
 	db := conn.GetPgDB()
 	for _, s := range sites {
-		if len(s.Odds.H2h) != 3 {
-			log.Printf("Error: odds h2h result:%+v\n", s)
+		if len(s.Odds.H2h) < 2 {
+			log.Printf("Error: odds h2h result:%+v (%+v)\n", s, s.Odds.H2h)
 			continue
+		}
+
+		var oddDraw float32
+		if len(s.Odds.H2h) == 3 {
+			oddDraw = s.Odds.H2h[2]
 		}
 
 		in := &data.Odds{
@@ -146,7 +151,7 @@ func UpsertOdds(matchkey string, sites []*odds.Site) error {
 			LastUpdate: s.LastUpdate,
 			OddTeamA:   s.Odds.H2h[0],
 			OddTeamB:   s.Odds.H2h[1],
-			OddDraw:    s.Odds.H2h[2],
+			OddDraw:    oddDraw,
 		}
 
 		// check exsit or not, exsit and not last > update, not exsit > Create
@@ -157,6 +162,7 @@ func UpsertOdds(matchkey string, sites []*odds.Site) error {
 			err = data.CreateOdds(db, in)
 		}
 		if err != nil {
+			log.Printf("Error: odds h2h result:%+v (%+v)\n", s, s.Odds.H2h)
 			return err
 		}
 	}

@@ -40,6 +40,7 @@ func makeRequest(name string, method string, url string, in interface{}, res int
 		if err != nil {
 			return err
 		}
+		return nil
 	}
 
 	return errors.New(resp.Status)
