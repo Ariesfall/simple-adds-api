@@ -21,6 +21,7 @@ var (
 	pgPort string = "5432"
 	pgUser string = "postgres"
 	pgPass string
+	pgName string = "sbet"
 
 	rootCmd = &cobra.Command{
 		Use:   "sbet",
@@ -42,6 +43,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&pgPort, "port", "p", "5432", "ip port for the database")
 	rootCmd.PersistentFlags().StringVarP(&pgUser, "user", "u", "postgres", "user for the database access")
 	rootCmd.PersistentFlags().StringVarP(&pgPass, "pass", "P", "", "user password for the database access")
+	rootCmd.PersistentFlags().StringVarP(&pgName, "database", "d", "sbet", "name of the database to access")
 
 	rootCmd.MarkPersistentFlagRequired("license")
 
@@ -56,7 +58,7 @@ func OddsSrv(cmd *cobra.Command, args []string) error {
 	initService()
 
 	// connect pgsql
-	dsn := conn.MakeDsn(pgAddr, pgPort, pgUser, pgPass, "sbet")
+	dsn := conn.MakeDsn(pgAddr, pgPort, pgUser, pgPass, pgName)
 	db, err := conn.ConnectPgdb(&conn.Postgres{Dsn: dsn, ConnMaxLiftTime: 10, MaxOpenConns: 10, MaxIdleConns: 1})
 	if err != nil {
 		return err

@@ -5,10 +5,17 @@ go run main.go -l ...
 
 Flags:
   -a, --addr string      ip adds for the database (default "127.0.0.1")
+  -d, --database string   name of the database to access (default "sbet")
   -l, --license string   key of license for the odds api
   -P, --pass string      user password for the database access
   -p, --port string      ip port for the database (default "5432")
   -u, --user string      user for the database access (default "postgres")
+
+## display all matchs
+curl localhost:8080/odds
+
+## display matchs of specific sport
+curl localhost:8080/odds?sport=basketball_ncaab
 
 go test ./...
 ```
