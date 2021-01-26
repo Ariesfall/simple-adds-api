@@ -19,11 +19,14 @@ type Postgres struct {
 var (
 	// postgres default conn detail
 	DefaultConn = &Postgres{
-		Dsn:             "postgres:password@localhost:5432/sbet",
+		Dsn:             "host=localhost port=5432 user=postgres password=1qaz@WSX dbname=sbet sslmode=disable",
 		ConnMaxLiftTime: 10,
 		MaxOpenConns:    10,
 		MaxIdleConns:    1,
 	}
+
+	// global db patamter
+	pgdb *sqlx.DB
 )
 
 // ConnectPgdb connect pg sql
@@ -43,6 +46,7 @@ func ConnectPgdb(p *Postgres) (*sqlx.DB, error) {
 		return nil, err
 	}
 
+	pgdb = db
 	return db, nil
 }
 
@@ -51,4 +55,12 @@ func MakeDsn(host, port, user, password, dbName string) string {
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbName)
 	return dsn
+}
+
+// get global db connection
+func GetPgDB() *sqlx.DB {
+	if pgdb == nil {
+		panic("db not exist")
+	}
+	return pgdb
 }

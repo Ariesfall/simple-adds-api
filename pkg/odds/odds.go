@@ -4,7 +4,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Ariesfall/simple-odds-api/pkg/request"
+	"github.com/Ariesfall/simple-odds-api/pkg/data"
+)
+
+const (
+	Sport  = "upcoming"
+	Region = "uk"
+	Market = "h2h"
 )
 
 var (
@@ -20,13 +26,13 @@ type OddsResp struct {
 
 // OddsData is the detail of odd result data
 type OddsData struct {
-	SportKey  string   `json:"sport_key"`
-	SportNice string   `json:"sport_nice"`
-	Teams     []string `json:"teams"`
-	CommTime  int      `json:"commence_time"`
-	HomeTeam  string   `json:"home_team"`
-	Sites     []*Site  `json:"sites"`
-	SitesCnt  int      `json:"sites_count"`
+	SportKey     string   `json:"sport_key"`
+	SportNice    string   `json:"sport_nice"`
+	Teams        []string `json:"teams"`
+	CommenceTime int      `json:"commence_time"`
+	HomeTeam     string   `json:"home_team"`
+	Sites        []*Site  `json:"sites"`
+	SitesCnt     int      `json:"sites_count"`
 }
 
 type Site struct {
@@ -37,14 +43,40 @@ type Site struct {
 }
 
 type Odds struct {
-	H2h []float64 `json:"h2h"`
+	H2h []float32 `json:"h2h"` // team A, team B, draw
 }
 
-func GetOdds(sport, region, mkt string) (*OddsResp, error) {
-	url := fmt.Sprintf("%s/v3/sports/?apiKey=%s&sport=%s&region=%s&mkt=%s", Endpoint, ApiKey, sport, region, mkt)
+// GetOdds send request to odds to get the data of matchs and odds
+// sport: Sport key obtained from calling the /sports, upcoming is always valid
+// region: Valid regions are au (Australia), uk (United Kingdom), eu (Europe) and us (United States)
+// mkt: Optional - Determines which odds market is returned. Defaults to h2h (head to head / moneyline).
+func GetOdds(sport string) (*OddsResp, error) {
+	if sport == "" {
+		sport = Sport
+	}
+
+	url := fmt.Sprintf("%s/v3/sports/?apiKey=%s&sport=%s&region=%s&mkt=%s", Endpoint, ApiKey, sport, Region, Market)
 	res := &OddsResp{}
 
-	err := request.MakeRequest("getOdds", http.MethodGet, url, nil, res)
+	err := makeRequest("getOdds", http.MethodGet, url, nil, res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// Sports is the response of sport request
+type SportsResp struct {
+	Success bool           `json:"success"`
+	Data    []*data.Sports `json:"data"`
+}
+
+// GetSports send request to odds to get the data of sports
+func GetSports() (*SportsResp, error) {
+	url := Endpoint + "/v3/sports/?apiKey=" + ApiKey
+	res := &SportsResp{}
+
+	err := makeRequest("getSport", http.MethodGet, url, nil, res)
 	if err != nil {
 		return nil, err
 	}

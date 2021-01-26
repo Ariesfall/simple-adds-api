@@ -7,13 +7,15 @@ import (
 	"os"
 
 	"github.com/Ariesfall/simple-odds-api/pkg/conn"
+	"github.com/Ariesfall/simple-odds-api/pkg/odds"
+	"github.com/Ariesfall/simple-odds-api/pkg/routine"
 	"github.com/Ariesfall/simple-odds-api/pkg/serv"
 	"github.com/spf13/cobra"
 )
 
 var (
 	// cmd input license key
-	userLicense string
+	apiLicense string
 
 	pgAddr string = "127.0.0.1"
 	pgPort string = "5432"
@@ -23,7 +25,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "sbet",
 		Short: "sbet collect the simple sport betting data from odds api",
-		RunE:  oddsSrv,
+		RunE:  OddsSrv,
 	}
 )
 
@@ -35,16 +37,23 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&userLicense, "license", "l", "", "key of license for the odds api")
+	rootCmd.PersistentFlags().StringVarP(&apiLicense, "license", "l", "", "key of license for the odds api")
 	rootCmd.PersistentFlags().StringVarP(&pgAddr, "addr", "a", "127.0.0.1", "ip adds for the database")
 	rootCmd.PersistentFlags().StringVarP(&pgPort, "port", "p", "5432", "ip port for the database")
 	rootCmd.PersistentFlags().StringVarP(&pgUser, "user", "u", "postgres", "user for the database access")
 	rootCmd.PersistentFlags().StringVarP(&pgPass, "pass", "P", "", "user password for the database access")
 
 	rootCmd.MarkPersistentFlagRequired("license")
+
+	initService()
 }
 
-func oddsSrv(cmd *cobra.Command, args []string) error {
+func initService() {
+	odds.ApiKey = apiLicense
+	log.Println("[StartUp] init odds api key: " + odds.ApiKey)
+}
+
+func OddsSrv(cmd *cobra.Command, args []string) error {
 
 	// connect pgsql
 	dsn := conn.MakeDsn(pgAddr, pgPort, pgUser, pgPass, "sbet")
@@ -53,13 +62,26 @@ func oddsSrv(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer db.Close()
-	log.Println("Connected to postgres database sbet")
+	log.Println("[StartUp] connected to postgres database sbet")
+
+	// store sports and upcoming data on start-up
+	err = routine.InitSync()
+	if err != nil {
+		return err
+	}
+
+	// routine service in new thread
+	job := routine.Jobs()
+	go job.Start()
+	log.Println("[StartUp] start rouine job")
+
+	defer job.Stop()
 
 	// http service
 	r := serv.Service(db)
 
 	// port listen
-	log.Println("start service on port :8080")
+	log.Println("[StartUp] start service on port :8080")
 	err = http.ListenAndServe(":8080", r)
 	if err != nil {
 		return err

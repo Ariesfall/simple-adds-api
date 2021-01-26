@@ -6,31 +6,25 @@ import (
 	"github.com/robfig/cron"
 )
 
-func RoutineJob() *cron.Cron {
+func Jobs() *cron.Cron {
 	c := cron.New()
 
 	// per one mins
 	c.AddFunc("0 */1 * * * *", inplayMatch)
-	// hourly
+	// per one hours
 	c.AddFunc("0 0 * * * *", nonInPlayMatch)
 
 	return c
 }
 
-func Start(c *cron.Cron) {
-	log.Printf("start run routine")
-	c.Start()
-}
-
-func Stop(c *cron.Cron) {
-	c.Stop()
-}
-
 // per one mins
 func inplayMatch() {
+	log.Println("sync inplay match")
+	SyncOdds("upcoming")
 }
 
 // hourly
 func nonInPlayMatch() {
-
+	log.Println("sync all match")
+	SyncOdds("upcoming")
 }
