@@ -1,4 +1,4 @@
-# simple-adds-api
+# simple-odds-api
 
 ```sh
 go run main.go -l ...
